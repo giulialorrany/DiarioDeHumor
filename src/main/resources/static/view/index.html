@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário de Humor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1 class="app-title">Diário de Humor</h1>
+            </div>
+            <div class="header-right">
+                <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+                <div class="streak">
+                    🔥 <span id="streakCount">?</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Calendar Page -->
+        <div class="calendar-page" id="calendarPage">
+            <div class="calendar-header">
+                <div class="month-nav">
+                    <button onclick="changeMonth(-1)">◀</button>
+                    <div class="month-year" id="monthYear"></div>
+                    <button onclick="changeMonth(1)">▶</button>
+                </div>
+            </div>
+            <div class="weekdays">
+                <div>Dom</div>
+                <div>Seg</div>
+                <div>Ter</div>
+                <div>Qua</div>
+                <div>Qui</div>
+                <div>Sex</div>
+                <div>Sáb</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <!-- Home Page -->
+        <div class="home-page" id="homePage">
+            <div class="greeting">
+                <h2>Olá! 👋</h2>
+                <p>Como você está se sentindo hoje? Registre seu humor para acompanhar seu bem-estar.</p>
+            </div>
+
+            <div class="mood-section">
+                <h3>Meu humor hoje</h3>
+                <div class="mood-question">Como você está hoje?</div>
+                <div class="mood-options">
+                    <button class="mood-btn mood-terrible" onclick="selectMood('terrible')">
+                        <div class="mood-icon">😫</div>
+                        <span class="mood-label">Terrível</span>
+                    </button>
+                    <button class="mood-btn mood-bad" onclick="selectMood('bad')">
+                        <div class="mood-icon">😔</div>
+                        <span class="mood-label">Mau</span>
+                    </button>
+                    <button class="mood-btn mood-ok" onclick="selectMood('ok')">
+                        <div class="mood-icon">😐</div>
+                        <span class="mood-label">Ok</span>
+                    </button>
+                    <button class="mood-btn mood-good" onclick="selectMood('good')">
+                        <div class="mood-icon">😊</div>
+                        <span class="mood-label">Bom</span>
+                    </button>
+                    <button class="mood-btn mood-excellent" onclick="selectMood('excellent')">
+                        <div class="mood-icon">😄</div>
+                        <span class="mood-label">Excelente</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Page -->
+        <div class="analysis-page" id="analysisPage">
+            <div class="period-selector">
+                <button class="period-btn active" onclick="changePeriod('week')">Semanal</button>
+                <button class="period-btn" onclick="changePeriod('biweekly')">Quinzenal</button>
+                <button class="period-btn" onclick="changePeriod('month')">Mensal</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="avgMood">7.5</div>
+                    <div class="stat-label">Média de Humor</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDays">7</div>
+                    <div class="stat-label">Dias Registrados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="bestMood">😄</div>
+                    <div class="stat-label">Melhor Dia</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="consistency">85%</div>
+                    <div class="stat-label">Consistência</div>
+                </div>
+            </div>
+
+            <div class="mood-chart">
+                <div class="chart-title">Distribuição de Humor</div>
+                <div class="chart-bars" id="chartBars"></div>
+            </div>
+
+            <div class="tips-section">
+                <h3>💡 Dicas para Melhorar</h3>
+                <div id="tipsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div class="note-modal" id="noteModal">
+        <div class="note-content">
+            <div class="note-header">
+                <h2 class="note-title">Adicionar Anotação</h2>
+                <button class="close-btn" onclick="closeNoteModal()">×</button>
+            </div>
+            
+            <div class="current-mood-display" id="currentMoodDisplay">
+                <div class="mood-emoji-large" id="moodEmojiLarge">😊</div>
+                <div class="mood-text" id="moodTextDisplay">Seu humor: Bom</div>
+            </div>
+
+            <textarea 
+                class="note-textarea" 
+                id="noteTextarea" 
+                placeholder="Como foi seu dia? O que você sentiu? Escreva aqui suas reflexões..."
+            ></textarea>
+            
+            <button class="save-note-btn" onclick="saveNote()">Salvar Anotação</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-wrapper">
+            <button class="nav-btn active" onclick="showPage('home')">
+                <div class="nav-icon">✓</div>
+                <span>Hoje</span>
+            </button>
+            <button class="nav-btn" onclick="showPage('calendar')">
+                <div class="nav-icon">📆</div>
+                <span>Agenda</span>
+            </button>
+            <button class="nav-btn" onclick="showPage('analysis')">
+                <div class="nav-icon">📊</div>
+                <span>Análise</span>
+            </button>
+            <button class="add-btn" onclick="openNoteModal()">
+                <div>+</div>
+            </button>
+        </div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
