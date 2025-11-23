@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 @Component
 public class HumorDAO {
@@ -24,7 +25,8 @@ public class HumorDAO {
     // CREATE || UPDATE
     public void save(HumorDTO entry) {
         System.out.println("método save() chamado!");
-        if (entry.getDate() != null && selectByDate(entry.getDate()) != null) {
+
+        if (entry.getDate() != null && selectByDay(entry.getDate()) != null) {
             update(entry);
         } else {
             create(entry);
@@ -34,6 +36,7 @@ public class HumorDAO {
     // CREATE
     public void create(HumorDTO entry) {
         System.out.println("método create() chamado!");
+
         String sql = "INSERT INTO humor_dia (day_date, mood, note) VALUES (?, ?, ?)";
 
         conn = new Conexao().conectaBD();
@@ -49,18 +52,29 @@ public class HumorDAO {
         }
     }
 
+    // READ analysis
+    public List<HumorDTO> analysis(String period, String date) {
+        return switch (period) {
+            case "week" -> selectByWeek(date);
+            case "month" -> selectByMonth(date);
+            default -> select2Weeks(date);
+        };
+    }
+
     // READ all
     public List<HumorDTO> selectAll() {
         System.out.println("método selectAll() chamado!");
+
         String sql = "SELECT * FROM humor_dia";
         conn = new Conexao().conectaBD();
         List<HumorDTO> list = new ArrayList<>();
+        HumorDTO entry;
         try {
 
             stmt = conn.prepareStatement(sql);
             rs = stmt.executeQuery();
             while (rs.next()) {
-                HumorDTO entry = new HumorDTO();
+                entry = new HumorDTO();
                 entry.setDate(convertDate(rs.getDate("day_date")));
                 entry.setMood(rs.getString("mood"));
                 entry.setNote(rs.getString("note"));
@@ -73,9 +87,10 @@ public class HumorDAO {
         return list;
     }
 
-    // READ by date
-    public HumorDTO selectByDate(String date) {
+    // READ by day
+    public HumorDTO selectByDay(String date) {
         System.out.println("método selectByDate() chamado!");
+
         String sql = "SELECT * FROM humor_dia WHERE day_date=?";
         conn = new Conexao().conectaBD();
         HumorDTO entry = null;
@@ -97,12 +112,139 @@ public class HumorDAO {
         return entry;
     }
 
+    // READ by current month
+    public List<HumorDTO> selectByCurrentMonth(int month, int year) {
+        month += 1; // 0 indexed    js(new Date().getMonth())
+        System.out.println("método selectByCurrentMonth() chamado!");
+
+        String sql = "SELECT * " +
+                "FROM humor_dia " +
+                "WHERE MONTH(day_date)=? " +
+                "AND YEAR(day_date)=?";
+        conn = new Conexao().conectaBD();
+        List<HumorDTO> list = new ArrayList<>();
+        HumorDTO entry;
+        try {
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, month);
+            stmt.setInt(2, year);
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                entry = new HumorDTO();
+                entry.setDate(convertDate(rs.getDate("day_date")));
+                entry.setMood(rs.getString("mood"));
+                entry.setNote(rs.getString("note"));
+                list.add(entry);
+            }
+
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByCurrentMonth(): " + e.getMessage());
+        }
+        return list;
+    }
+
+    // READ by week
+    public List<HumorDTO> selectByWeek(String date) {
+        System.out.println("método selectByWeek() chamado!");
+
+        String sql = "SELECT * " +
+                "FROM humor_dia " +
+                "WHERE WEEK(day_date) = WEEK(?) " +
+                "AND YEAR(day_date) = YEAR(?)";
+        conn = new Conexao().conectaBD();
+        List<HumorDTO> list = new ArrayList<>();
+        HumorDTO entry;
+        try {
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, convertDate(date));
+            stmt.setDate(2, convertDate(date));
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                entry = new HumorDTO();
+                entry.setDate(convertDate(rs.getDate("day_date")));
+                entry.setMood(rs.getString("mood"));
+                entry.setNote(rs.getString("note"));
+                list.add(entry);
+            }
+
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByWeek(): " + e.getMessage());
+        }
+        return list;
+    }
+
+    // READ 2 weeks
+    public List<HumorDTO> select2Weeks(String date) {
+        System.out.println("método select2Weeks() chamado!");
+
+        String sql = "SELECT * " +
+                "FROM humor_dia " +
+                "WHERE (WEEK(day_date) = WEEK(?) AND YEAR(day_date) = YEAR(?)) " +
+                "OR (WEEK(day_date) = WEEK(?)-1 AND YEAR(day_date) = YEAR(?))";
+        conn = new Conexao().conectaBD();
+        List<HumorDTO> list = new ArrayList<>();
+        HumorDTO entry;
+        try {
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, convertDate(date));
+            stmt.setDate(2, convertDate(date));
+            stmt.setDate(3, convertDate(date));
+            stmt.setDate(4, convertDate(date));
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                entry = new HumorDTO();
+                entry.setDate(convertDate(rs.getDate("day_date")));
+                entry.setMood(rs.getString("mood"));
+                entry.setNote(rs.getString("note"));
+                list.add(entry);
+            }
+
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em select2Weeks(): " + e.getMessage());
+        }
+        return list;
+    }
+
+    // READ by month
+    public List<HumorDTO> selectByMonth(String date) {
+        System.out.println("método selectByMonth() chamado!");
+
+        String sql = "SELECT * " +
+                "FROM humor_dia " +
+                "WHERE MONTH(day_date) = MONTH(?)" +
+                "AND YEAR(day_date) = YEAR(?)";
+        conn = new Conexao().conectaBD();
+        List<HumorDTO> list = new ArrayList<>();
+        HumorDTO entry;
+        try {
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, convertDate(date));
+            stmt.setDate(2, convertDate(date));
+            rs = stmt.executeQuery();
+            while (rs.next()) {
+                entry = new HumorDTO();
+                entry.setDate(convertDate(rs.getDate("day_date")));
+                entry.setMood(rs.getString("mood"));
+                entry.setNote(rs.getString("note"));
+                list.add(entry);
+            }
+
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByMonth(): " + e.getMessage());
+        }
+        return list;
+    }
+
 
     // UPDATE
     public void update(HumorDTO entry) {
         System.out.println("método update() chamado!");
-        String sql = "UPDATE humor_dia SET mood=?, note=? WHERE day_date=?";
 
+        String sql = "UPDATE humor_dia SET mood=?, note=? WHERE day_date=?";
         conn = new Conexao().conectaBD();
         try {
             stmt = conn.prepareStatement(sql);
@@ -118,15 +260,6 @@ public class HumorDAO {
 
     // Para o Backend
     private Date convertDate(String date) throws ParseException {
-
-        /*
-        date = date.trim().toLowerCase();
-        date = Character.toUpperCase(date.charAt(0))
-                + date.substring(1, 4)
-                + Character.toUpperCase(date.charAt(4))
-                + date.substring(5);
-         */
-
         return Date.valueOf(
                 backDate.format(
                         frontDate.parse(date)

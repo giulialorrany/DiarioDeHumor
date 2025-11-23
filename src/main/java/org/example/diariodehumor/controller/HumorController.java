@@ -10,16 +10,18 @@ import java.util.List;
 @RequestMapping("/api/humor")
 public class HumorController {
 
-    private final HumorDAO dao;
+    private static final HumorDAO dao = new HumorDAO();
 
-    public HumorController(HumorDAO dao) {
-        this.dao = dao;
+    // Request method = GET
+    @GetMapping("/calendar")
+    public List<HumorDTO> selectCalendar(@RequestParam int month, @RequestParam int year) {
+        return dao.selectByCurrentMonth(month, year);
     }
 
     // Request method = GET
-    @GetMapping
-    public List<HumorDTO> list() {
-        return dao.selectAll();
+    @GetMapping("/analysis")
+    public List<HumorDTO> selectAnalysis(@RequestParam String period, @RequestParam String day) {
+        return dao.analysis(period, day);
     }
 
     // Request method = POST

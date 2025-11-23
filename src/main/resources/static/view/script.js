@@ -1,11 +1,13 @@
-const moods = {};
-const notes = {};
+let moods = {};
+let notes = {};
+let analysisMoods = {};
+
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let selectedMood = null;
 let currentPeriod = 'week';
 
-const testDate = null
+const testDate = null;
 // const testDate = new Date('Wed Nov 19 2025').toDateString();
 
 const moodEmojis = {
@@ -117,7 +119,7 @@ async function showPage(page) {
     } else if (page === 'analysis') {
         document.getElementById('analysisPage').style.display = 'block';
         document.querySelectorAll('.nav-btn')[3].classList.add('active');
-        renderAnalysis();
+        await renderAnalysis();
     }
 }
 
@@ -137,14 +139,14 @@ function selectMood(mood) {
 
 
 async function updateStreak() {
-    await loadData(); // Espera o carregamento dos dados
+    await loadCalendar(); // Espera o carregamento dos dados
 
     const days = Object.keys(moods).length;
     document.getElementById('streakCount').textContent = days;
 }
 
 async function renderCalendar() {
-    await loadData(); // Espera o carregamento dos dados
+    await loadCalendar(); // Espera o carregamento dos dados
 
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
@@ -215,21 +217,104 @@ async function changeMonth(direction) {
     await renderCalendar();
 }
 
-function renderAnalysis() {
+async function renderAnalysis() {
+    currentMonth = new Date().getMonth();
+    currentYear = new Date().getFullYear();
+
+    await loadAnalysis();
     renderChart();
     renderTips();
 }
 
 function renderChart() {
-    const moodCounts = {
-        'Terrível': 1,
-        'Mau': 2,
-        'Ok': 3,
-        'Bom': 4,
-        'Excelente': 5
+    const moodMap = {
+        'terrible': 'Terrível',
+        'bad': 'Mau',
+        'ok': 'Ok',
+        'good': 'Bom',
+        'excellent': 'Excelente'
+        ,
+        'Terrível': 'terrible',
+        'Mau': 'bad',
+        'Ok': 'ok',
+        'Bom': 'good',
+        'Excelente': 'excellent'
     };
 
-    const maxCount = Math.max(...Object.values(moodCounts));
+    const moodValues = {
+        'Terrível': 0,
+        'Mau': 1,
+        'Ok': 2,
+        'Bom': 3,
+        'Excelente': 4
+    };
+
+    // Contagem de humor
+    let moodCounts = { 'Terrível': 0, 'Mau': 0, 'Ok': 0, 'Bom': 0, 'Excelente': 0 };
+
+    for (let value of Object.values(analysisMoods)) {
+        const mappedMood = moodMap[value];
+        if (mappedMood) {
+            moodCounts[mappedMood] += 1;
+        }
+    }
+
+    // Calcula a média e encontrar o maior humor
+    let days = 0, moodSum = 0, bestMood = 'Terrível', maxCount = -1;
+
+    for (const [mood, count] of Object.entries(moodCounts)) {
+        days += count;
+        if (count > maxCount) {
+            maxCount = count;
+        }
+
+        // Soma do humor baseado no valor
+        moodSum += moodValues[mood] * count;
+
+        // Atualiza o melhor humor
+        if (count > 0 && moodValues[mood] > moodValues[bestMood]) {
+            bestMood = mood;
+        }
+    }
+
+    let average = 0;
+    if(days > 0) {
+        average = (moodSum / days) / 4; // Normalizado para uma escala de 0 a 10
+    }
+
+    let averageStr
+    if(average % 1 === 0) {
+        averageStr = average.toString();
+    } else {
+        averageStr = average.toFixed(2);
+    }
+
+    // calcula a consistência (%) baseada no período de tempo selecionado
+    let period;
+    switch (currentPeriod) {
+        case 'week':
+            period = 7;
+            break;
+        case 'biweekly':
+            period = 14;
+            break;
+        default:
+            // número de dias no mês atual
+            period = new Date(currentYear, currentMonth + 1, 0).getDate();
+    }
+    let consistency = days / period * 100
+    let consistencyTXT = '';
+    if(consistency % 1 === 0) {
+        consistencyTXT = consistency.toString();
+    } else {
+        consistencyTXT = consistency.toFixed(2);
+    }
+
+    document.getElementById('avgMood').textContent = averageStr;
+    document.getElementById('totalDays').textContent = days;
+    document.getElementById('bestMood').textContent = moodEmojis[moodMap[bestMood]];
+    document.getElementById('consistency').textContent = consistencyTXT+"%";
+
     const chartBars = document.getElementById('chartBars');
     chartBars.innerHTML = '';
 
@@ -263,29 +348,44 @@ function renderTips() {
     });
 }
 
-function changePeriod(period) {
+async function changePeriod(period) {
     currentPeriod = period;
     document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
     event.currentTarget.classList.add('active');
 
-    const days = period === 'week' ? 7 : period === 'biweekly' ? 14 : 30;
-    document.getElementById('totalDays').textContent = days;
-
-    renderAnalysis();
+    await renderAnalysis();
 }
 
 
 // ---------------------------------------- Funções de fetch do server ----------------------------------------
-async function loadData() {
+async function loadCalendar() {
     try {
-        const response = await fetch('http://localhost:8080/api/humor');
+        const response = await fetch('http://localhost:8080/api/humor/calendar?month='+currentMonth+'&year='+currentYear);
         const data = await response.json();
         console.log("Lista de humores: ", data);
-
+        
+        moods = {}
         // Preenche os objetos moods e notes com os dados recebidos
         data.forEach(entry => {
             moods[entry.date] = entry.mood;
             notes[entry.date] = entry.note || ''; // Se não houver nota, atribui string vazia
+        });
+    } catch (err) {
+        console.error("Erro:", err);
+    }
+}
+
+async function loadAnalysis() {
+    const today = testDate || new Date().toDateString();
+    try {
+        const response = await fetch('http://localhost:8080/api/humor/analysis?period='+currentPeriod+'&day='+today);
+        const data = await response.json();
+        console.log("Lista de humores: ", data);
+
+        analysisMoods = {}
+        // Preenche o objeto analysisMoods com os dados recebidos
+        data.forEach(entry => {
+            analysisMoods[entry.date] = entry.mood;
         });
     } catch (err) {
         console.error("Erro:", err);
