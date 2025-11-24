@@ -1,6 +1,7 @@
 let moods = {};
 let notes = {};
 let analysisMoods = {};
+let streak = 0;
 
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
@@ -123,23 +124,22 @@ async function showPage(page) {
     }
 }
 
-function selectMood(mood) {
+async function selectMood(mood) {
      const today = testDate || new Date().toDateString();
      moods[today] = mood;
      selectedMood = mood;
 
      // Chama saveData para salvar no BD do server
      saveData(today, mood, notes[today] || '');
+     await updateStreak();
 
      document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
      event.currentTarget.classList.add('selected');
-
-     updateStreak();
  }
 
 
 async function updateStreak() {
-    await loadCalendar(); // Espera o carregamento dos dados
+    await loadStreak();
 
     const days = Object.keys(moods).length;
     document.getElementById('streakCount').textContent = days;
@@ -391,6 +391,22 @@ async function loadAnalysis() {
         console.error("Erro:", err);
     }
 }
+
+async function loadStreak() {
+    const today = testDate || new Date().toDateString();
+    try {
+        const response = await fetch('http://localhost:8080/api/humor/streak?day=' + today);
+        const streak = await response.json(); // já é um número
+
+        console.log("Streak: ", streak);
+        // agora 'streak' é o valor retornado pela API
+
+    } catch (err) {
+        console.error("Erro:", err);
+    }
+}
+
+
 
 function saveData(date, mood, note) {
     const newMood = { date, mood, note };

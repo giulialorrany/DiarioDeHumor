@@ -8,9 +8,9 @@ import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 @Component
 public class HumorDAO {
@@ -22,6 +22,7 @@ public class HumorDAO {
     static final SimpleDateFormat frontDate = new SimpleDateFormat("E MMM dd yyyy", Locale.ENGLISH);
     static final SimpleDateFormat backDate = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
 
+    // -------------------- CREATE || UPDATE --------------------
     // CREATE || UPDATE
     public void save(HumorDTO entry) {
         System.out.println("método save() chamado!");
@@ -52,6 +53,26 @@ public class HumorDAO {
         }
     }
 
+    // UPDATE
+    public void update(HumorDTO entry) {
+        System.out.println("método update() chamado!");
+
+        String sql = "UPDATE humor_dia SET mood=?, note=? WHERE day_date=?";
+        conn = new Conexao().conectaBD();
+        try {
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, entry.getMood());
+            stmt.setString(2, entry.getNote());
+            stmt.setDate(3, convertDate(entry.getDate()));
+            stmt.execute();
+            stmt.close();
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em update(): " + e.getMessage());
+        }
+    }
+
+
+    // -------------------- READ --------------------
     // READ analysis
     public List<HumorDTO> analysis(String period, String date) {
         return switch (period) {
@@ -61,30 +82,61 @@ public class HumorDAO {
         };
     }
 
-    // READ all
-    public List<HumorDTO> selectAll() {
-        System.out.println("método selectAll() chamado!");
+    // READ streak
+    public int countConsecutiveDays(String todayDate) {
+        Date today;
 
-        String sql = "SELECT * FROM humor_dia";
-        conn = new Conexao().conectaBD();
-        List<HumorDTO> list = new ArrayList<>();
-        HumorDTO entry;
         try {
+            today = convertDate(todayDate);
+        } catch (ParseException e) {
+            System.out.println("Erro em convertDate: " + e.getMessage());
+            return 0;
+        }
 
+        String sql = """
+            SELECT DISTINCT day_date
+            FROM humor_dia
+            WHERE day_date <= ?
+            ORDER BY day_date DESC
+        """;
+
+        conn = new Conexao().conectaBD();
+
+        List<Date> dates = new ArrayList<>();
+
+        try {
             stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, today);
             rs = stmt.executeQuery();
+
             while (rs.next()) {
-                entry = new HumorDTO();
-                entry.setDate(convertDate(rs.getDate("day_date")));
-                entry.setMood(rs.getString("mood"));
-                entry.setNote(rs.getString("note"));
-                list.add(entry);
+                dates.add(rs.getDate("day_date"));
             }
 
-        } catch (SQLException | ParseException e) {
-            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectAll(): " + e.getMessage());
+        } catch(SQLException e) {
+            System.out.println("Erro SQL: " + e.getMessage());
+            return 0;
         }
-        return list;
+
+        if (dates.isEmpty())
+            return 0;
+
+        // O primeiro dia deve ser hoje para streak > 0
+        if (!dates.get(0).equals(today))
+            return 0;
+
+        int streak = 1;
+
+        for (int i = 1; i < dates.size(); i++) {
+            Date expected = addDays(dates.get(i - 1), -1);
+            if (dates.get(i).equals(expected)) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+
+        return streak;
     }
 
     // READ by day
@@ -114,7 +166,7 @@ public class HumorDAO {
 
     // READ by current month
     public List<HumorDTO> selectByCurrentMonth(int month, int year) {
-        month += 1; // 0 indexed    js(new Date().getMonth())
+        month++; // 0 indexed    js(new Date().getMonth())
         System.out.println("método selectByCurrentMonth() chamado!");
 
         String sql = "SELECT * " +
@@ -240,24 +292,7 @@ public class HumorDAO {
     }
 
 
-    // UPDATE
-    public void update(HumorDTO entry) {
-        System.out.println("método update() chamado!");
-
-        String sql = "UPDATE humor_dia SET mood=?, note=? WHERE day_date=?";
-        conn = new Conexao().conectaBD();
-        try {
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, entry.getMood());
-            stmt.setString(2, entry.getNote());
-            stmt.setDate(3, convertDate(entry.getDate()));
-            stmt.execute();
-            stmt.close();
-        } catch (SQLException | ParseException e) {
-            System.out.println("Erro "+ e.getClass().getSimpleName() +" em update(): " + e.getMessage());
-        }
-    }
-
+    // -------------------- UTIL --------------------
     // Para o Backend
     private Date convertDate(String date) throws ParseException {
         return Date.valueOf(
@@ -273,5 +308,12 @@ public class HumorDAO {
                         String.valueOf(date)
                 )
         );
+    }
+
+    private Date addDays(Date date, int days) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.DAY_OF_MONTH, days);
+        return (Date) cal.getTime();
     }
 }
