@@ -23,8 +23,9 @@ public class HumorDAO {
     static final SimpleDateFormat frontDate = new SimpleDateFormat("E MMM dd yyyy", Locale.ENGLISH);
     static final SimpleDateFormat backDate = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
 
-    // -------------------- CREATE || UPDATE --------------------
-    // CREATE || UPDATE
+
+    // -------------------- CREATE / UPDATE / DELETE --------------------
+    // SAVE (CREATE || UPDATE)
     public void save(HumorDTO entry) {
         System.out.println("método save() chamado!");
 
@@ -72,16 +73,25 @@ public class HumorDAO {
         }
     }
 
-    // -------------------- Full Query --------------------
-    // Analysis deprecated
-    public List<HumorDTO> getAnalysisOld(String period, String date) {
-        System.out.println("método getAnalysisOld() chamado!");
-        return switch (period) {
-            case "week" -> selectByWeek(date);
-            case "month" -> selectByMonth(date);
-            default -> select2Weeks(date);
-        };
+    // DELETE
+    public void delete(HumorDTO entry) {
+        System.out.println("método delete() chamado!");
+
+        String sql = "DELETE FROM humor_dia WHERE day_date=?";
+
+        conn = new Conexao().conectaBD();
+        try {
+            stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, convertDate(entry.getDate()));
+            stmt.execute();
+            stmt.close();
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em delete(): " + e.getMessage());
+        }
     }
+
+
+    // -------------------- Full Query --------------------
     // Analysis
     public AnalysisDTO getAnalysis(String period, String date) {
         System.out.println("método getAnalysis() chamado!");
@@ -255,7 +265,7 @@ public class HumorDAO {
 
 
     // -------------------- READ --------------------
-    // READ by day
+    // SELECT by day
     public HumorDTO selectByDay(String date) {
         System.out.println("método selectByDate() chamado!");
 
@@ -280,7 +290,7 @@ public class HumorDAO {
         return entry;
     }
 
-    // READ by week
+    // SELECT by week
     public List<HumorDTO> selectByWeek(String date) {
         System.out.println("método selectByWeek() chamado!");
 
@@ -311,7 +321,7 @@ public class HumorDAO {
         return list;
     }
 
-    // READ 2 weeks
+    // SELECT 2 weeks
     public List<HumorDTO> select2Weeks(String date) {
         System.out.println("método select2Weeks() chamado!");
 
@@ -344,7 +354,7 @@ public class HumorDAO {
         return list;
     }
 
-    // READ by month
+    // SELECT by month
     public List<HumorDTO> selectByMonth(String date) {
         System.out.println("método selectByMonth() chamado!");
 
@@ -377,7 +387,7 @@ public class HumorDAO {
 
 
     // -------------------- UTIL --------------------
-    // Para o Backend
+    // Converte data para o formato do Backend
     private Date convertDate(String date) throws ParseException {
         return Date.valueOf(
                 backDate.format(
@@ -385,7 +395,7 @@ public class HumorDAO {
                 )
         );
     }
-    // Para o Frontend
+    // Converte data para o formato do Frontend
     private String convertDate(Date date) throws ParseException {
         return frontDate.format(
                 backDate.parse(
@@ -394,13 +404,16 @@ public class HumorDAO {
         );
     }
 
+    // Avança (ou retrocede) dias de um "Date"
     private Date addDays(Date date, int days) {
+        // Se days for negativo retrocede dias
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
         cal.add(Calendar.DAY_OF_MONTH, days);
         return (Date) cal.getTime();
     }
 
+    // Encontra número de dias do mês de um "Date"
     private int getDaysInMonth(Date date) {
         LocalDate localDate = date.toLocalDate();
 
