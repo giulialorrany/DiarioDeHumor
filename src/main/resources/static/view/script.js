@@ -1,6 +1,6 @@
 let moods = {};
 let notes = {};
-let analysisMoods = {};
+let analysisData = {};
 let streak = 0;
 
 let currentMonth = new Date().getMonth();
@@ -233,92 +233,24 @@ function renderChart() {
         'ok': 'Ok',
         'good': 'Bom',
         'excellent': 'Excelente'
-        ,
-        'Terrível': 'terrible',
-        'Mau': 'bad',
-        'Ok': 'ok',
-        'Bom': 'good',
-        'Excelente': 'excellent'
     };
 
-    const moodValues = {
-        'Terrível': 0,
-        'Mau': 1,
-        'Ok': 2,
-        'Bom': 3,
-        'Excelente': 4
-    };
-
-    // Contagem de humor
-    let moodCounts = { 'Terrível': 0, 'Mau': 0, 'Ok': 0, 'Bom': 0, 'Excelente': 0 };
-
-    for (let value of Object.values(analysisMoods)) {
-        const mappedMood = moodMap[value];
-        if (mappedMood) {
-            moodCounts[mappedMood] += 1;
-        }
-    }
-
-    // Calcula a média e encontrar o maior humor
-    let days = 0, moodSum = 0, bestMood = 'Terrível', maxCount = -1;
-
-    for (const [mood, count] of Object.entries(moodCounts)) {
-        days += count;
+    let maxCount = -1;
+    for (const [mood, count] of Object.entries(analysisData.moodCount)) {
         if (count > maxCount) {
             maxCount = count;
         }
-
-        // Soma do humor baseado no valor
-        moodSum += moodValues[mood] * count;
-
-        // Atualiza o melhor humor
-        if (count > 0 && moodValues[mood] > moodValues[bestMood]) {
-            bestMood = mood;
-        }
     }
 
-    let average = 0;
-    if(days > 0) {
-        average = (moodSum / days) / 4; // Normalizado para uma escala de 0 a 10
-    }
-
-    let averageStr
-    if(average % 1 === 0) {
-        averageStr = average.toString();
-    } else {
-        averageStr = average.toFixed(2);
-    }
-
-    // calcula a consistência (%) baseada no período de tempo selecionado
-    let period;
-    switch (currentPeriod) {
-        case 'week':
-            period = 7;
-            break;
-        case 'biweekly':
-            period = 14;
-            break;
-        default:
-            // número de dias no mês atual
-            period = new Date(currentYear, currentMonth + 1, 0).getDate();
-    }
-    let consistency = days / period * 100
-    let consistencyTXT = '';
-    if(consistency % 1 === 0) {
-        consistencyTXT = consistency.toString();
-    } else {
-        consistencyTXT = consistency.toFixed(2);
-    }
-
-    document.getElementById('avgMood').textContent = averageStr;
-    document.getElementById('totalDays').textContent = days;
-    document.getElementById('bestMood').textContent = moodEmojis[moodMap[bestMood]];
-    document.getElementById('consistency').textContent = consistencyTXT+"%";
+    document.getElementById('avgMood').textContent = trimFloat(analysisData.moodAvg);
+    document.getElementById('totalDays').textContent = analysisData.totalDays;
+    document.getElementById('bestMood').textContent = moodEmojis[analysisData.bestMood];
+    document.getElementById('consistency').textContent = trimFloat(analysisData.consistency)+'%';
 
     const chartBars = document.getElementById('chartBars');
     chartBars.innerHTML = '';
 
-    for (const [mood, count] of Object.entries(moodCounts)) {
+    for (const [mood, count] of Object.entries(analysisData.moodCount)) {
         const height = (count / maxCount) * 100;
         chartBars.innerHTML += `
             <div class="chart-bar" style="height: ${height}%">
@@ -379,14 +311,8 @@ async function loadAnalysis() {
     const today = testDate || new Date().toDateString();
     try {
         const response = await fetch('http://localhost:8080/api/humor/analysis?period='+currentPeriod+'&day='+today);
-        const data = await response.json();
-        console.log("Lista de humores: ", data);
-
-        analysisMoods = {}
-        // Preenche o objeto analysisMoods com os dados recebidos
-        data.forEach(entry => {
-            analysisMoods[entry.date] = entry.mood;
-        });
+        analysisData = await response.json();
+        console.log("Análise: ", analysisData);
     } catch (err) {
         console.error("Erro:", err);
     }
@@ -396,11 +322,8 @@ async function loadStreak() {
     const today = testDate || new Date().toDateString();
     try {
         const response = await fetch('http://localhost:8080/api/humor/streak?day=' + today);
-        const streak = await response.json(); // já é um número
-
+        streak = await response.json();
         console.log("Streak: ", streak);
-        // agora 'streak' é o valor retornado pela API
-
     } catch (err) {
         console.error("Erro:", err);
     }
@@ -423,4 +346,15 @@ function saveData(date, mood, note) {
             console.log("Resposta do servidor: ", result);
         })
         .catch(err => console.error("Erro:", err));
+}
+
+function trimFloat(num) {
+    const parts = num.toString().split('.');
+
+    // Verifica se tem parte decimal e se ela tem 3 ou mais algarismos
+    if(parts.length > 1 && parts[1].length >= 3) {
+        return num.toFixed(2);
+    } else {
+        return num.toString();
+    }
 }

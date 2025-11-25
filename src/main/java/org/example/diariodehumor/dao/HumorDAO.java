@@ -2,15 +2,16 @@ package org.example.diariodehumor.dao;
 
 import org.example.diariodehumor.model.Conexao;
 import org.example.diariodehumor.model.HumorDTO;
+import org.example.diariodehumor.model.AnalysisDTO;
 import org.springframework.stereotype.Component;
 
 import java.sql.*;
+import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.*;
 
 @Component
 public class HumorDAO {
@@ -71,19 +72,99 @@ public class HumorDAO {
         }
     }
 
-
-    // -------------------- READ --------------------
-    // READ analysis
-    public List<HumorDTO> analysis(String period, String date) {
+    // -------------------- Full Query --------------------
+    // Analysis deprecated
+    public List<HumorDTO> getAnalysisOld(String period, String date) {
+        System.out.println("método getAnalysisOld() chamado!");
         return switch (period) {
             case "week" -> selectByWeek(date);
             case "month" -> selectByMonth(date);
             default -> select2Weeks(date);
         };
     }
+    // Analysis
+    public AnalysisDTO getAnalysis(String period, String date) {
+        System.out.println("método getAnalysis() chamado!");
+        Date dateC = new Date(System.currentTimeMillis());
+        try {
+            dateC = convertDate(date);
+        } catch (ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em getAnalysis(): " + e.getMessage());
+        }
 
-    // READ streak
-    public int countConsecutiveDays(String todayDate) {
+        // Pega registros para análise
+        List<HumorDTO> humorList =  switch (period) {
+            case "week" -> selectByWeek(date);
+            case "month" -> selectByMonth(date);
+            default -> select2Weeks(date);
+        };
+
+        // Define o valor dos humores para encontrar o melhor e ajudar a criar a média
+        Map<String,Integer> moodValue = new HashMap<>();
+        moodValue.put("terrible", 0);
+        moodValue.put("bad", 1);
+        moodValue.put("ok", 2);
+        moodValue.put("good", 3);
+        moodValue.put("excellent", 4);
+
+        // Conta quantidade de cada humor
+        Map<String,Integer> moodCount = new HashMap<>();
+        moodCount.put("terrible", 0);
+        moodCount.put("bad", 0);
+        moodCount.put("ok", 0);
+        moodCount.put("good", 0);
+        moodCount.put("excellent", 0);
+
+        for(HumorDTO humor : humorList) {
+            String mood = humor.getMood();
+            moodCount.put(mood, moodCount.get(mood) + 1);
+        }
+
+        // Calcula a média e encontrar o melhor humor
+        int totalDays = 0, moodSum = 0;
+        String bestMood = "terrible";
+
+        for(Map.Entry<String,Integer> entry : moodCount.entrySet()) {
+            String mood = entry.getKey();
+            int count = entry.getValue();
+
+            // Atualiza o total de dias registrados
+            totalDays += count;
+
+            // Atualiza o somatório de valores de humor para a média
+            moodSum += moodValue.get(mood) * count;
+
+            // Atualiza o melhor humor
+            if (count > 0 && moodValue.get(mood) > moodValue.get(bestMood)) {
+                bestMood = mood;
+            }
+        }
+
+        // Calcula a média
+        double average = totalDays > 0 ? (double) moodSum / totalDays : 0;
+
+        // Calcula a consistência
+        int timePeriod = switch (period) {
+            case "week" -> 7;
+            case "biweekly" -> 14;
+            default -> getDaysInMonth(dateC);
+        };
+        double consistency = (double) totalDays / timePeriod * 100;
+
+        // Forma o Objeto "AnalysisDTO"
+        AnalysisDTO analysis = new AnalysisDTO();
+        analysis.setMoodAvg(average);
+        analysis.setTotalDays(totalDays);
+        analysis.setBestMood(bestMood);
+        analysis.setConsistency(consistency);
+        analysis.setMoodCount(moodCount);
+
+        return analysis;
+    }
+
+    // Streak
+    public int getStreak(String todayDate) {
+        System.out.println("método getStreak() chamado!");
         Date today;
 
         try {
@@ -139,33 +220,9 @@ public class HumorDAO {
         return streak;
     }
 
-    // READ by day
-    public HumorDTO selectByDay(String date) {
-        System.out.println("método selectByDate() chamado!");
-
-        String sql = "SELECT * FROM humor_dia WHERE day_date=?";
-        conn = new Conexao().conectaBD();
-        HumorDTO entry = null;
-        try {
-
-            stmt = conn.prepareStatement(sql);
-            stmt.setDate(1, convertDate(date));
-            rs = stmt.executeQuery();
-            if (rs.next()) {
-                entry = new HumorDTO();
-                entry.setDate(convertDate(rs.getDate("day_date")));
-                entry.setMood(rs.getString("mood"));
-                entry.setNote(rs.getString("note"));
-            }
-
-        } catch (SQLException | ParseException e) {
-            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByDate(): " + e.getMessage());
-        }
-        return entry;
-    }
-
-    // READ by current month
-    public List<HumorDTO> selectByCurrentMonth(int month, int year) {
+    // Calendar
+    public List<HumorDTO> getCalendar(int month, int year) {
+        System.out.println("método getCalendar() chamado!");
         month++; // 0 indexed    js(new Date().getMonth())
         System.out.println("método selectByCurrentMonth() chamado!");
 
@@ -194,6 +251,33 @@ public class HumorDAO {
             System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByCurrentMonth(): " + e.getMessage());
         }
         return list;
+    }
+
+
+    // -------------------- READ --------------------
+    // READ by day
+    public HumorDTO selectByDay(String date) {
+        System.out.println("método selectByDate() chamado!");
+
+        String sql = "SELECT * FROM humor_dia WHERE day_date=?";
+        conn = new Conexao().conectaBD();
+        HumorDTO entry = null;
+        try {
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setDate(1, convertDate(date));
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                entry = new HumorDTO();
+                entry.setDate(convertDate(rs.getDate("day_date")));
+                entry.setMood(rs.getString("mood"));
+                entry.setNote(rs.getString("note"));
+            }
+
+        } catch (SQLException | ParseException e) {
+            System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByDate(): " + e.getMessage());
+        }
+        return entry;
     }
 
     // READ by week
@@ -315,5 +399,16 @@ public class HumorDAO {
         cal.setTime(date);
         cal.add(Calendar.DAY_OF_MONTH, days);
         return (Date) cal.getTime();
+    }
+
+    private int getDaysInMonth(Date date) {
+        LocalDate localDate = date.toLocalDate();
+
+        int year = localDate.getYear();
+        int month = localDate.getMonthValue();
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+
+        return yearMonth.lengthOfMonth();
     }
 }
