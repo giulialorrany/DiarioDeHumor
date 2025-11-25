@@ -1,6 +1,7 @@
 package org.example.diariodehumor.controller;
 
 import org.example.diariodehumor.dao.HumorDAO;
+import org.example.diariodehumor.model.AnalysisDTO;
 import org.example.diariodehumor.model.HumorDTO;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,17 +15,17 @@ public class HumorController {
 
     @GetMapping("/calendar")
     public List<HumorDTO> selectCalendar(@RequestParam int month, @RequestParam int year) {
-        return dao.selectByCurrentMonth(month, year);
+        return dao.getCalendar(month, year);
     }
 
     @GetMapping("/analysis")
-    public List<HumorDTO> selectAnalysis(@RequestParam String period, @RequestParam String day) {
-        return dao.analysis(period, day);
+    public AnalysisDTO selectAnalysis(@RequestParam String period, @RequestParam String day) {
+        return dao.getAnalysis(period, day);
     }
 
     @GetMapping("/streak")
     public int selectStreak(@RequestParam String day) {
-        return dao.countConsecutiveDays(day);
+        return dao.getStreak(day);
     }
 
     // Request method = POST
