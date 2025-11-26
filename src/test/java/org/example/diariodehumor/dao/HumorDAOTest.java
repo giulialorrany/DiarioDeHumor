@@ -1,112 +1,89 @@
 package org.example.diariodehumor.dao;
 
-import org.example.diariodehumor.model.HumorDTO;
 import org.example.diariodehumor.model.AnalysisDTO;
+import org.example.diariodehumor.model.HumorDTO;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
+@SpringBootTest
+@ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS) // permite usar @BeforeAll sem static
 class HumorDAOTest {
 
+    @Autowired
     private HumorDAO dao;
-    private HumorDTO dto;
 
+    // Limpa tudo antes de cada teste
     @BeforeEach
-    void setUp() {
-        // Inicializar o DAO e a entrada de exemplo
-        dao = new HumorDAO();
-        dto = new HumorDTO();
-        dto.setDate("Mon Oct 25 2023");
-        dto.setMood("good");
-        dto.setNote("Feeling good today");
+    void clean() {
+        // Apaga registros de teste que usamos nas datas fixas
+        dao.delete(new HumorDTO("Mon Oct 23 2023", null, null));
+        dao.delete(new HumorDTO("Tue Oct 24 2023", null, null));
+        dao.delete(new HumorDTO("Wed Oct 25 2023", null, null));
     }
 
     @Test
     void testSaveCreate() {
-        dao.save(dto); // Deve criar o registro
-        HumorDTO result = dao.selectByDay(dto.getDate());
+        HumorDTO dto = new HumorDTO("Wed Oct 25 2023", "good", "Feeling good");
 
-        assertNotNull(result);
+        dao.save(dto);
+
+        HumorDTO result = dao.selectByDay("Wed Oct 25 2023");
+        assertThat(result, notNullValue());
         assertThat(result.getMood(), equalTo("good"));
-        assertThat(result.getNote(), equalTo("Feeling good today"));
+        assertThat(result.getNote(), equalTo("Feeling good"));
     }
 
     @Test
     void testSaveUpdate() {
-        // Cria o primeiro registro
+        // cria primeiro
+        dao.save(new HumorDTO("Mon Oct 25 2023", "good", "Normal day"));
+
+        // atualiza
+        HumorDTO dto = new HumorDTO("Mon Oct 25 2023", "excellent", "Best day ever!");
         dao.save(dto);
 
-        // Altera o humor e salva novamente
-        dto.setMood("excellent");
-        dto.setNote("Fantastic day!");
-        dao.save(dto);
-
-        HumorDTO result = dao.selectByDay(dto.getDate());
-        assertNotNull(result);
+        HumorDTO result = dao.selectByDay("Mon Oct 25 2023");
         assertThat(result.getMood(), equalTo("excellent"));
-        assertThat(result.getNote(), equalTo("Fantastic day!"));
+        assertThat(result.getNote(), equalTo("Best day ever!"));
     }
 
     @Test
     void testDelete() {
-        dao.save(dto);
-        dao.delete(dto);
+        dao.save(new HumorDTO("Mon Oct 25 2023", "bad", "Bad day"));
 
-        HumorDTO result = dao.selectByDay(dto.getDate());
-        assertNull(result);
-    }
+        dao.delete(new HumorDTO("Mon Oct 25 2023", null, null));
 
-    @Test
-    void testSelectByDay() {
-        dao.save(dto);
-        HumorDTO result = dao.selectByDay(dto.getDate());
-
-        assertNotNull(result);
-        assertThat(result.getDate(), equalTo(dto.getDate()));
-        assertThat(result.getMood(), equalTo("good"));
-        assertThat(result.getNote(), equalTo("Feeling good today"));
-    }
-
-    @Test
-    void testGetAnalysisByWeek() {
-        // Simular alguns registros para análise
-        dto.setDate("Mon Oct 25 2023");
-        dto.setMood("good");
-        dao.save(dto);
-
-        dto.setDate("Tue Oct 26 2023");
-        dto.setMood("bad");
-        dao.save(dto);
-
-        String period = "week";
-        String date = "Mon Oct 25 2023"; // Data de início
-        AnalysisDTO analysis = dao.getAnalysis(period, date);
-
-        assertNotNull(analysis);
-        assertThat(analysis.getMoodAvg(), greaterThanOrEqualTo(0.0));
-        assertThat(analysis.getBestMood(), equalTo("good"));
-        assertThat(analysis.getTotalDays(), greaterThan(0));
+        assertThat(dao.selectByDay("Mon Oct 25 2023"), nullValue());
     }
 
     @Test
     void testGetStreak() {
-        // Simular um streak
-        dto.setDate("Mon Oct 25 2023");
-        dto.setMood("good");
-        dao.save(dto);
+        dao.save(new HumorDTO("Mon Oct 23 2023", "good", ""));
+        dao.save(new HumorDTO("Tue Oct 24 2023", "good", ""));
+        dao.save(new HumorDTO("Wed Oct 25 2023", "excellent", ""));
 
-        int streak = dao.getStreak(dto.getDate());
-        assertThat(streak, equalTo(1));
+        int streak = dao.getStreak("Wed Oct 25 2023");
 
-        // Adicionar mais dias consecutivos e testar o streak
-        dto.setDate("Tue Oct 26 2023");
-        dao.save(dto);
+        assertThat(streak, equalTo(3));
+    }
 
-        streak = dao.getStreak(dto.getDate());
-        assertThat(streak, equalTo(2)); // Espera-se que o streak tenha crescido
+    @Test
+    void testGetAnalysis() {
+        dao.save(new HumorDTO("Mon Oct 23 2023", "good", null));
+        dao.save(new HumorDTO("Tue Oct 24 2023", "excellent", null));
+        dao.save(new HumorDTO("Wed Oct 25 2023", "ok", null));
+
+        AnalysisDTO analysis = dao.getAnalysis("week", "Wed Oct 25 2023");
+
+        assertThat(analysis.getTotalDays(), equalTo(3));
+        assertThat(analysis.getBestMood(), equalTo("excellent"));
+        assertThat(analysis.getMoodAvg(), closeTo(3.0, 0.4)); // (3 + 4 + 2)/3 = 9/3 = 3.0
+        // aceitar margem de erro de 0.4 por causa do ponto flutuante
     }
 }

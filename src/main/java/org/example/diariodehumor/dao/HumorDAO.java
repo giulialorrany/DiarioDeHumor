@@ -256,7 +256,7 @@ public class HumorDAO {
                 list.add(entry);
             }
 
-        } catch (SQLException | ParseException e) {
+        } catch (SQLException e) {
             System.out.println("Erro "+ e.getClass().getSimpleName() +" em selectByCurrentMonth(): " + e.getMessage());
         }
         return list;
@@ -386,30 +386,22 @@ public class HumorDAO {
 
 
     // -------------------- UTIL --------------------
-    // Converte data para o formato do Backend
-    private Date convertDate(String date) throws ParseException {
-        return Date.valueOf(
-                backDate.format(
-                        frontDate.parse(date)
-                )
-        );
+    // convertDate (String → sql.Date)
+    private java.sql.Date convertDate(String dateStr) throws ParseException {
+        java.util.Date parsed = frontDate.parse(dateStr);
+        return new java.sql.Date(parsed.getTime());
     }
-    // Converte data para o formato do Frontend
-    private String convertDate(Date date) throws ParseException {
-        return frontDate.format(
-                backDate.parse(
-                        String.valueOf(date)
-                )
-        );
+    // convertDate (sql.Date → String)
+    private String convertDate(java.sql.Date sqlDate) {
+        return frontDate.format(sqlDate);
     }
 
     // Avança (ou retrocede) dias de um "Date"
-    private Date addDays(Date date, int days) {
-        // Se days for negativo retrocede dias
+    private java.sql.Date addDays(java.sql.Date date, int days) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
         cal.add(Calendar.DAY_OF_MONTH, days);
-        return (Date) cal.getTime();
+        return new java.sql.Date(cal.getTimeInMillis());
     }
 
     // Encontra número de dias do mês de um "Date"

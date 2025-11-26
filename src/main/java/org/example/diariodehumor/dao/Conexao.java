@@ -8,15 +8,24 @@ public class Conexao {
     public Connection conectaBD() {
         Connection conn = null;
 
-        // MUDAR CONFIG CONFORME O NECESSÁRIO
-
-        // Config do banco
-        String url = "jdbc:mysql://localhost:3307/diario_de_humor"; //  jdbc:mysql://localhost:[número_da_port]/[nome_do_banco]
-        String username = "root"; //    [usuário]
-        String password = ""; //    [senha]
-
         try {
-            conn = DriverManager.getConnection(url, username, password);
+            // Se estiver rodando teste → usa H2 em memória
+            if (System.getProperty("spring.profiles.active") != null &&
+                    System.getProperty("spring.profiles.active").contains("test")) {
+
+                conn = DriverManager.getConnection(
+                        "jdbc:h2:mem:diariodehumor;DB_CLOSE_DELAY=-1;MODE=MySQL;", "sa", ""
+                );
+            } else {
+                // MUDAR CONFIG CONFORME O NECESSÁRIO
+
+                // Config do banco
+                String url = "jdbc:mysql://localhost:3307/diario_de_humor"; //  jdbc:mysql://localhost:[número_da_port]/[nome_do_banco]
+                String username = "root"; //    [usuário]
+                String password = ""; //    [senha]
+
+                conn = DriverManager.getConnection(url, username, password);
+            }
             System.out.println("✅ Conexão estabelecida com sucesso!");
         } catch (SQLException e) {
             System.out.println("❌ Erro ao conectar: " + e.getMessage());
