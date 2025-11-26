@@ -23,8 +23,9 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j:8.4.0")
 
     // Testes
-    testImplementation("com.h2database:h2")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.h2database:h2") // simula um banco de dados na memória
+    testImplementation("org.springframework.boot:spring-boot-starter-test") // inclui JUnit e Hamcrest
+    // ter que usar spring-boot-starter-test por causa do Spring Boot q tem problemas de compatibilidade
 }
 
 tasks.test {

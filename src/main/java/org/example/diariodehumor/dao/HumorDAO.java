@@ -20,8 +20,6 @@ public class HumorDAO {
     ResultSet rs;
 
     static final SimpleDateFormat frontDate = new SimpleDateFormat("E MMM dd yyyy", Locale.ENGLISH);
-    static final SimpleDateFormat backDate = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-
 
     // -------------------- CREATE / UPDATE / DELETE --------------------
     // SAVE (CREATE || UPDATE)

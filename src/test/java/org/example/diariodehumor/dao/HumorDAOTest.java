@@ -5,14 +5,11 @@ import org.example.diariodehumor.model.HumorDTO;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS) // permite usar @BeforeAll sem static
+@SpringBootTest // Anotação para poder rodar com o Spring Boot
 class HumorDAOTest {
 
     @Autowired
@@ -21,7 +18,7 @@ class HumorDAOTest {
     // Limpa tudo antes de cada teste
     @BeforeEach
     void clean() {
-        // Apaga registros de teste que usamos nas datas fixas
+        // Apaga registros de teste nessas datas fixas
         dao.delete(new HumorDTO("Mon Oct 23 2023", null, null));
         dao.delete(new HumorDTO("Tue Oct 24 2023", null, null));
         dao.delete(new HumorDTO("Wed Oct 25 2023", null, null));
@@ -55,10 +52,12 @@ class HumorDAOTest {
 
     @Test
     void testDelete() {
-        dao.save(new HumorDTO("Mon Oct 25 2023", "bad", "Bad day"));
+        HumorDTO dto = new HumorDTO("Mon Oct 25 2023", "bad", "Bad day");
 
-        dao.delete(new HumorDTO("Mon Oct 25 2023", null, null));
+        dao.save(dto);
+        assertThat(dao.selectByDay("Mon Oct 25 2023"), notNullValue());
 
+        dao.delete(dto);
         assertThat(dao.selectByDay("Mon Oct 25 2023"), nullValue());
     }
 
