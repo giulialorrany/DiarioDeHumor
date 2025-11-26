@@ -1,6 +1,5 @@
 package org.example.diariodehumor.dao;
 
-import org.example.diariodehumor.model.Conexao;
 import org.example.diariodehumor.model.HumorDTO;
 import org.example.diariodehumor.model.AnalysisDTO;
 import org.springframework.stereotype.Component;

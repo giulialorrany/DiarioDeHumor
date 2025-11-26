@@ -1,4 +1,4 @@
-package org.example.diariodehumor.model;
+package org.example.diariodehumor.dao;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

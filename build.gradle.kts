@@ -20,8 +20,9 @@ dependencies {
     implementation("com.mysql:mysql-connector-j:9.5.0")
 
     // JUnit 5
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.9.2")
 
     // Hamcrest
     testImplementation("org.hamcrest:hamcrest:2.2")
