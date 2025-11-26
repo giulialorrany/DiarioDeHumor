@@ -3,8 +3,8 @@
 ## Como Rodar:
 
 1. Rodar o MySQL server <span style="color: #AF55FF">(no caso foi usado o do *[XAMPP](https://www.apachefriends.org/pt_br/index.html)*)</span>
-2. Criar o [banco.sql](src/main/java/org/example/diariodehumor/model/banco.sql)
-3. Adaptar as configurações do banco em [Conexao.java](src/main/java/org/example/diariodehumor/model/Conexao.java) <span style="color: #6BFF08">(linhas 22-25)</span>
+2. Criar o [banco.sql](src/main/java/org/example/diariodehumor/dao/banco.sql)
+3. Adaptar as configurações do banco em [Conexao.java](src/main/java/org/example/diariodehumor/dao/Conexao.java) <span style="color: #6BFF08">(linhas 22-25)</span>
     ```java
         // Config do banco
         String url = "jdbc:mysql://localhost:3307/diario_de_humor"; //  jdbc:mysql://localhost:[número_da_port]/[nome_do_banco]
