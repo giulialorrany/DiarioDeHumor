@@ -19,6 +19,7 @@ class HumorDAOTest {
     @BeforeEach
     void clean() {
         // Apaga registros de teste nessas datas fixas
+        dao.delete(new HumorDTO("Sun Oct 22 2023", null, null));
         dao.delete(new HumorDTO("Mon Oct 23 2023", null, null));
         dao.delete(new HumorDTO("Tue Oct 24 2023", null, null));
         dao.delete(new HumorDTO("Wed Oct 25 2023", null, null));
@@ -30,14 +31,14 @@ class HumorDAOTest {
 
         // testa antes de criar
         HumorDTO result = dao.selectByDay("Wed Oct 25 2023");
-        assertThat(result, nullValue());
+        assertThat(result, nullValue()); // ve se essa data não tem dados
 
         // cria
         dao.save(dto);
 
         // testa depois de criar
         result = dao.selectByDay("Wed Oct 25 2023");
-        assertThat(result, notNullValue());
+        assertThat(result, notNullValue()); // ve se essa data Tem dados
         assertThat(result.getMood(), equalTo("good"));
         assertThat(result.getNote(), equalTo("Feeling good"));
     }
