@@ -15,7 +15,7 @@ class HumorDAOTest {
     @Autowired
     private HumorDAO dao;
 
-    // Limpa tudo antes de cada teste
+    // Limpa os dados antes de cada teste (usa banco de dados h2)
     @BeforeEach
     void clean() {
         // Apaga registros de teste nessas datas fixas
@@ -25,19 +25,25 @@ class HumorDAOTest {
     }
 
     @Test
-    void testSaveCreate() {
+    void testCreate() {
         HumorDTO dto = new HumorDTO("Wed Oct 25 2023", "good", "Feeling good");
 
+        // testa antes de criar
+        HumorDTO result = dao.selectByDay("Wed Oct 25 2023");
+        assertThat(result, nullValue());
+
+        // cria
         dao.save(dto);
 
-        HumorDTO result = dao.selectByDay("Wed Oct 25 2023");
+        // testa depois de criar
+        result = dao.selectByDay("Wed Oct 25 2023");
         assertThat(result, notNullValue());
         assertThat(result.getMood(), equalTo("good"));
         assertThat(result.getNote(), equalTo("Feeling good"));
     }
 
     @Test
-    void testSaveUpdate() {
+    void testUpdate() {
         // cria primeiro
         dao.save(new HumorDTO("Mon Oct 25 2023", "good", "Normal day"));
 
@@ -45,6 +51,7 @@ class HumorDAOTest {
         HumorDTO dto = new HumorDTO("Mon Oct 25 2023", "excellent", "Best day ever!");
         dao.save(dto);
 
+        // testa
         HumorDTO result = dao.selectByDay("Mon Oct 25 2023");
         assertThat(result.getMood(), equalTo("excellent"));
         assertThat(result.getNote(), equalTo("Best day ever!"));
@@ -54,15 +61,18 @@ class HumorDAOTest {
     void testDelete() {
         HumorDTO dto = new HumorDTO("Mon Oct 25 2023", "bad", "Bad day");
 
+        // cria primeiro
         dao.save(dto);
         assertThat(dao.selectByDay("Mon Oct 25 2023"), notNullValue());
 
+        // deleta
         dao.delete(dto);
         assertThat(dao.selectByDay("Mon Oct 25 2023"), nullValue());
     }
 
     @Test
     void testGetStreak() {
+        // testa se retorna o número de dias consecutivos
         dao.save(new HumorDTO("Mon Oct 23 2023", "good", ""));
         dao.save(new HumorDTO("Tue Oct 24 2023", "good", ""));
         dao.save(new HumorDTO("Wed Oct 25 2023", "excellent", ""));
@@ -80,9 +90,23 @@ class HumorDAOTest {
 
         AnalysisDTO analysis = dao.getAnalysis("week", "Wed Oct 25 2023");
 
+        // total de dias registrados
         assertThat(analysis.getTotalDays(), equalTo(3));
+
+        // melhor humor
         assertThat(analysis.getBestMood(), equalTo("excellent"));
-        assertThat(analysis.getMoodAvg(), closeTo(3.0, 0.4)); // (3 + 4 + 2)/3 = 9/3 = 3.0
+
+        // média do humor
+        assertThat(analysis.getMoodAvg(), closeTo(3.0, 0.4));
         // aceitar margem de erro de 0.4 por causa do ponto flutuante
+
+        // Pesos:
+        // terrible = 0
+        // bad = 1
+        // ok = 2
+        // good = 3
+        // excellent = 4
+
+        // (3 + 4 + 2)/3 = 9/3 = 3.0
     }
 }
